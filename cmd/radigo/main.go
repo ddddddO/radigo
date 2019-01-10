@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -12,118 +13,167 @@ import (
 	"strings"
 )
 
+type Client struct {
+	c *http.Client
+}
+
 func main() {
-	/* radiko login */
 	email := ""
 	pass := ""
-	loginUrl := "https://radiko.jp/ap/member/login/login"
+	c := NewClient()
 
-	jar, err := cookiejar.New(nil)
+	err := c.login(email, pass)
 	if err != nil {
 		log.Fatal(err)
 	}
-	client := &http.Client{Jar: jar}
+
+	token, partialKey, err := c.auth1()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = c.auth2(token, partialKey)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	m3u8, err := c.getTimeFreeM3U8(token)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("---------m3u8---------")
+	fmt.Println(m3u8)
+	fmt.Println("---------m3u8---------")
+
+}
+
+func NewClient() *Client {
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		panic(err)
+	}
+
+	return &Client{
+		c: &http.Client{
+			Jar: jar,
+		},
+	}
+}
+
+/* radiko login */
+func (c *Client) login(email, pass string) error {
+	const loginUrl = "https://radiko.jp/ap/member/login/login"
 
 	params := url.Values{}
 	params.Add("mail", email)
 	params.Add("pass", pass)
-	loginReq, err := http.NewRequest("POST", loginUrl, strings.NewReader(params.Encode()))
+	req, err := http.NewRequest("POST", loginUrl, strings.NewReader(params.Encode()))
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-	loginReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	loginResp, err := client.Do(loginReq)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := c.c.Do(req)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-	if loginResp.StatusCode != http.StatusOK {
-		log.Fatal("failed to login")
+	if resp.StatusCode != http.StatusOK {
+		return errors.New("failed to login")
 	}
 
-	params.Del("mail")
-	params.Del("pass")
+	return nil
 
-	/* get auth token */
-	authUrl := "https://radiko.jp/v2/api/auth1"
-	authReq, err := http.NewRequest("GET", authUrl, nil)
+}
+
+/* get auth token */
+func (c *Client) auth1() (string, string, error) {
+	const authUrl = "https://radiko.jp/v2/api/auth1"
+	req, err := http.NewRequest("GET", authUrl, nil)
 	if err != nil {
-		log.Fatal(err)
+		return "", "", err
 	}
 
-	authReq.Header.Set("User-Agent", "curl/7.56.1")
-	authReq.Header.Set("Accept", "*/*")
-	authReq.Header.Set("pragma", "no-cache")
-	authReq.Header.Set("x-radiko-app", "pc_html5")
-	authReq.Header.Set("x-radiko-app-version", "0.0.1")
-	authReq.Header.Set("x-radiko-device", "pc")
-	authReq.Header.Set("x-radiko-user", "dummy_user")
-	authResp, err := client.Do(authReq)
+	req.Header.Set("User-Agent", "curl/7.56.1")
+	req.Header.Set("Accept", "*/*")
+	req.Header.Set("pragma", "no-cache")
+	req.Header.Set("x-radiko-app", "pc_html5")
+	req.Header.Set("x-radiko-app-version", "0.0.1")
+	req.Header.Set("x-radiko-device", "pc")
+	req.Header.Set("x-radiko-user", "dummy_user")
+	resp, err := c.c.Do(req)
 	if err != nil {
-		log.Fatal(err)
+		return "", "", err
 	}
-	if authResp.StatusCode != http.StatusOK {
-		log.Fatal("failed to get auth token")
+	if resp.StatusCode != http.StatusOK {
+		return "", "", errors.New("failed to get auth token")
 	}
 
-	token := authResp.Header.Get("X-Radiko-AuthToken")
-	keyLength, _ := strconv.Atoi(authResp.Header.Get("X-Radiko-KeyLength"))
-	keyOffset, _ := strconv.Atoi(authResp.Header.Get("X-Radiko-KeyOffset"))
+	token := resp.Header.Get("X-Radiko-AuthToken")
+	keyLength, _ := strconv.Atoi(resp.Header.Get("X-Radiko-KeyLength"))
+	keyOffset, _ := strconv.Atoi(resp.Header.Get("X-Radiko-KeyOffset"))
 
 	// TODO: 正規表現でsrcからちゃんと取得するようにする
 	key := "bcd151073c03b352e1ef2fd66c32209da9ca0afa"
 	cnvKey := key[keyOffset : keyOffset+keyLength]
 	partialKey := base64.StdEncoding.EncodeToString([]byte(cnvKey))
 
-	/* enable auto token  */
-	auth2Url := "https://radiko.jp/v2/api/auth2"
-	auth2Req, err := http.NewRequest("GET", auth2Url, nil)
+	return token, partialKey, nil
+}
+
+/* enable auto token  */
+func (c *Client) auth2(token, partialKey string) error {
+	const auth2Url = "https://radiko.jp/v2/api/auth2"
+	req, err := http.NewRequest("GET", auth2Url, nil)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	auth2Req.Header.Set("X-Radiko-AuthToken", token)
-	auth2Req.Header.Set("x-radiko-device", "pc")
-	auth2Req.Header.Set("x-radiko-partialkey", partialKey)
-	auth2Req.Header.Set("x-radiko-user", "dummy_user")
-	auth2Resp, err := client.Do(auth2Req)
+	req.Header.Set("X-Radiko-AuthToken", token)
+	req.Header.Set("x-radiko-device", "pc")
+	req.Header.Set("x-radiko-partialkey", partialKey)
+	req.Header.Set("x-radiko-user", "dummy_user")
+	resp, err := c.c.Do(req)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-	if auth2Resp.StatusCode != http.StatusOK {
-		log.Fatal("failed to enable auto token")
+	if resp.StatusCode != http.StatusOK {
+		return errors.New("failed to enable auto token")
 	}
 
-	/* get TimeFreeM3U8 */
-	//params.Add("station_id", "MBS")
-	//params.Add("l", "15")
-	//params.Add("ft", "20190108050000")
-	//params.Add("to", "20190108060000")
-	//M3U8url := "https://radiko.jp/v2/api/ts/playlist.m3u8"
-	//reqM3U8, err := http.NewRequest("POST", M3U8url, strings.NewReader(params.Encode()))
-	M3U8url := "https://radiko.jp/v2/api/ts/playlist.m3u8?station_id=MBS&l=15&ft=20190108050000&to=20190108060000"
-	reqM3U8, err := http.NewRequest("POST", M3U8url, nil)
+	return nil
+}
+
+/* get TimeFreeM3U8 */
+func (c *Client) getTimeFreeM3U8(token string) (string, error) {
+	//M3U8url := "https://radiko.jp/v2/api/ts/playlist.m3u8?station_id=MBS&l=15&ft=20190108050000&to=20190108060000"
+	const M3U8url = "https://radiko.jp/v2/api/ts/playlist.m3u8?station_id=%s&ft=%s&to=%s"
+
+	var (
+		stationId = "MBS"
+		ft        = "20190108050000"
+		to        = "20190108060000"
+	)
+	req, err := http.NewRequest("POST", fmt.Sprintf(M3U8url, stationId, ft, to), nil)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
-	reqM3U8.Header.Set("pragma", "no-cache")
-	reqM3U8.Header.Set("X-Radiko-AuthToken", token)
-	respM3U8, err := client.Do(reqM3U8)
+	req.Header.Set("pragma", "no-cache")
+	req.Header.Set("X-Radiko-AuthToken", token)
+	resp, err := c.c.Do(req)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
-	if respM3U8.StatusCode != http.StatusOK {
-		log.Fatal("faled to get TimeFreeM3U8")
+	if resp.StatusCode != http.StatusOK {
+		return "", errors.New("faled to get TimeFreeM3U8")
 	}
 
-	b, err := ioutil.ReadAll(respM3U8.Body)
+	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatal()
+		return "", err
 	}
 
-	fmt.Println("---------m3u8---------")
-	fmt.Println(string(b))
-	fmt.Println("---------m3u8---------")
-
+	return string(b), nil
 }
