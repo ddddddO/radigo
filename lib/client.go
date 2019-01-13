@@ -126,7 +126,6 @@ func (c *Client) Auth2(token, partialKey string) error {
 
 /* get TimeFreeM3U8 */
 func (c *Client) GetTimeFreeM3U8(stationId, ft, to, token string) (string, error) {
-	//M3U8url := "https://radiko.jp/v2/api/ts/playlist.m3u8?station_id=MBS&l=15&ft=20190108050000&to=20190108060000"
 	const M3U8url = "https://radiko.jp/v2/api/ts/playlist.m3u8?station_id=%s&ft=%s&to=%s"
 
 	req, err := http.NewRequest("POST", fmt.Sprintf(M3U8url, stationId, ft, to), nil)
