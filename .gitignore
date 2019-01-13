@@ -1,2 +1,6 @@
 *.txt
 *.m4a
+
+# testing
+cover.out
+cover.html
