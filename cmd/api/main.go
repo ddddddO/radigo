@@ -24,6 +24,7 @@ func main() {
 
 func health(ctx *gin.Context) {
 	ctx.String(200, "health cheack ok!\n")
+	return
 }
 
 func handler(ctx *gin.Context) {
