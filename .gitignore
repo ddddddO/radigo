@@ -2,5 +2,6 @@
 *.m4a
 
 # testing
+test_data.json
 cover.out
 cover.html
