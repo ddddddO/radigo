@@ -10,6 +10,8 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+
+	gq "github.com/PuerkitoBio/goquery"
 )
 
 type Client struct {
@@ -47,6 +49,15 @@ func (c *Client) Login(email, pass string) error {
 	if err != nil {
 		return err
 	}
+
+	doc, err := gq.NewDocumentFromResponse(resp)
+	if err != nil {
+		return err
+	}
+	if doc.Find("#member .login-area > .caution").Size() != 0 {
+		return errors.New("invalid email or password")
+	}
+
 	if resp.StatusCode != http.StatusOK {
 		return errors.New("failed to login")
 	}
