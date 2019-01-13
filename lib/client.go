@@ -21,9 +21,9 @@ func NewClient() *Client {
 	if err != nil {
 		panic(err)
 	}
-	
-	return &Client {
-		c: &http.Client {
+
+	return &Client{
+		c: &http.Client{
 			Jar: jar,
 		},
 	}
@@ -138,5 +138,5 @@ func (c *Client) GetTimeFreeM3U8(stationId, ft, to, token string) (string, error
 		return "", err
 	}
 
-	return string(b), nil
+	return strings.Split(string(b), "\n")[3], nil
 }

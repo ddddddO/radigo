@@ -38,29 +38,35 @@ func handler(ctx *gin.Context) {
 
 	err := c.Login(email, pass)
 	if err != nil {
-		ctx.String(403, err.Error() + "\n")
+		ctx.String(403, err.Error()+"\n")
 		return
 	}
 
 	token, partialKey, err := c.Auth1()
 	if err != nil {
-		ctx.String(404, err.Error() + "\n")
+		ctx.String(404, err.Error()+"\n")
 		return
 	}
 
 	err = c.Auth2(token, partialKey)
 	if err != nil {
-		ctx.String(404, err.Error() + "\n")
+		ctx.String(404, err.Error()+"\n")
 		return
 	}
 
 	m3u8, err := c.GetTimeFreeM3U8(stationId, ft, to, token)
 	if err != nil {
-		ctx.String(404, err.Error() + "\n")
+		ctx.String(404, err.Error()+"\n")
 		return
 	}
 
-	ctx.String(200, m3u8)
+	dest, err := lib.Ffmpeg(m3u8, stationId)
+	if err != nil {
+		ctx.String(404, err.Error()+"\n")
+		return
+	}
+
+	ctx.String(200, dest+"\n")
 
 	return
 }
