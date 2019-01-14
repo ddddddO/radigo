@@ -16,7 +16,7 @@ func main() {
 	r := gin.Default()
 
 	r.GET("/health", health)
-	r.POST("/get_m3u8", handler)
+	r.POST("/get_m4a", handler)
 
 	r.Run(":8888")
 
