@@ -12,6 +12,11 @@ var (
 	to        string
 )
 
+type Auth struct {
+	Email string `json:"email"`
+	Pass  string `json:"pass"`
+}
+
 func main() {
 	r := gin.Default()
 
@@ -32,12 +37,12 @@ func handler(ctx *gin.Context) {
 	ft = "20190108050000"
 	to = "20190108060000"
 
-	email := ctx.PostForm("email")
-	pass := ctx.PostForm("pass")
+	var auth Auth
+	ctx.BindJSON(&auth)
 
 	c := rg.NewClient()
 
-	err := c.Login(email, pass)
+	err := c.Login(auth.Email, auth.Pass)
 	if err != nil {
 		ctx.String(403, err.Error()+"\n")
 		return
