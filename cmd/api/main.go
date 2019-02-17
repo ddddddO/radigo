@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 
-	"github.com/ddddddO/radigo/lib"
+	rg "github.com/ddddddO/radigo/radigo"
 )
 
 var (
@@ -12,18 +12,24 @@ var (
 	to        string
 )
 
+type Auth struct {
+	Email string `json:"email"`
+	Pass  string `json:"pass"`
+}
+
 func main() {
 	r := gin.Default()
 
 	r.GET("/health", health)
-	r.POST("/get_m3u8", handler)
+	r.POST("/get_m4a", handler)
 
 	r.Run(":8888")
 
 }
 
 func health(ctx *gin.Context) {
-	ctx.String(200, "health cheack ok!\n")
+	ctx.Header("Access-Control-Allow-Origin", "*") // No 'Access-Control-Allow-Origin' header is present on the requested resource. のエラー対策
+	ctx.JSON(200, gin.H{"type": "get", "message": "health cheack ok!"})
 	return
 }
 
@@ -32,12 +38,12 @@ func handler(ctx *gin.Context) {
 	ft = "20190108050000"
 	to = "20190108060000"
 
-	email := ctx.PostForm("email")
-	pass := ctx.PostForm("pass")
+	var auth Auth
+	ctx.BindJSON(&auth)
 
-	c := lib.NewClient()
+	c := rg.NewClient()
 
-	err := c.Login(email, pass)
+	err := c.Login(auth.Email, auth.Pass)
 	if err != nil {
 		ctx.String(403, err.Error()+"\n")
 		return
@@ -61,7 +67,7 @@ func handler(ctx *gin.Context) {
 		return
 	}
 
-	dest, err := lib.Ffmpeg(m3u8, stationId)
+	dest, err := rg.Ffmpeg(m3u8, stationId)
 	if err != nil {
 		ctx.String(404, err.Error()+"\n")
 		return
