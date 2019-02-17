@@ -28,7 +28,8 @@ func main() {
 }
 
 func health(ctx *gin.Context) {
-	ctx.String(200, "health cheack ok!\n")
+	ctx.Header("Access-Control-Allow-Origin", "*") // No 'Access-Control-Allow-Origin' header is present on the requested resource. のエラー対策
+	ctx.JSON(200, gin.H{"type": "get", "message": "health cheack ok!"})
 	return
 }
 
