@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 
-	"github.com/ddddddO/radigo/lib"
+	rg "github.com/ddddddO/radigo/radigo"
 )
 
 var (
@@ -35,7 +35,7 @@ func handler(ctx *gin.Context) {
 	email := ctx.PostForm("email")
 	pass := ctx.PostForm("pass")
 
-	c := lib.NewClient()
+	c := rg.NewClient()
 
 	err := c.Login(email, pass)
 	if err != nil {
@@ -61,7 +61,7 @@ func handler(ctx *gin.Context) {
 		return
 	}
 
-	dest, err := lib.Ffmpeg(m3u8, stationId)
+	dest, err := rg.Ffmpeg(m3u8, stationId)
 	if err != nil {
 		ctx.String(404, err.Error()+"\n")
 		return
