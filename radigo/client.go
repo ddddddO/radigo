@@ -55,7 +55,7 @@ func (c *Client) Login(email, pass string) error {
 		return err
 	}
 	if doc.Find("#member .login-area > .caution").Size() != 0 {
-		return errors.New("invalid email or password")
+		return errors.New(fmt.Sprintf("invalid email(%s) or password(%s)", email, pass))
 	}
 
 	if resp.StatusCode != http.StatusOK {
