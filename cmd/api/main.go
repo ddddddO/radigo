@@ -8,8 +8,8 @@ import (
 
 var (
 	stationId string
-	ft        string
-	to        string
+	start     string
+	end       string
 )
 
 type Auth struct {
@@ -35,8 +35,8 @@ func health(ctx *gin.Context) {
 
 func handler(ctx *gin.Context) {
 	stationId = "MBS"
-	ft = "20190108050000"
-	to = "20190108060000"
+	start = "20190330053000"
+	end = "20190330053100"
 
 	var auth Auth
 	ctx.BindJSON(&auth)
@@ -61,19 +61,19 @@ func handler(ctx *gin.Context) {
 		return
 	}
 
-	m3u8, err := c.GetTimeFreeM3U8(stationId, ft, to, token)
+	m3u8, err := c.GetTimeFreeM3U8(stationId, start, end, token)
 	if err != nil {
 		ctx.String(404, err.Error()+"\n")
 		return
 	}
 
-	dest, err := rg.Ffmpeg(m3u8, stationId)
+	destPath, err := rg.Ffmpeg(m3u8, stationId)
 	if err != nil {
 		ctx.String(404, err.Error()+"\n")
 		return
 	}
 
-	ctx.String(200, dest+"\n")
+	ctx.String(200, destPath+"\n")
 
 	return
 }

@@ -1,7 +1,6 @@
 package lib
 
 import (
-	//"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -16,10 +15,9 @@ func Ffmpeg(m3u8, stationId string) (string, error) {
 	}
 
 	fileName := "%s.m4a"
-	dest := filepath.Join(cwd, fmt.Sprintf(fileName, stationId))
-	if IsExist(dest) {
-		err = os.Remove(dest)
-		if err != nil {
+	destPath := filepath.Join(cwd, fmt.Sprintf(fileName, stationId))
+	if IsExist(destPath) {
+		if err := os.Remove(destPath); err != nil {
 			return "", err
 		}
 	}
@@ -27,27 +25,12 @@ func Ffmpeg(m3u8, stationId string) (string, error) {
 	ffmpeg := `ffmpeg -i %s -t 17 -c copy %s`
 	cmd := exec.Command(
 		"sh", "-c",
-		fmt.Sprintf(ffmpeg, m3u8, dest),
+		fmt.Sprintf(ffmpeg, m3u8, destPath),
 	)
 
-	/*
-		var stdout, stderr bytes.Buffer
-		cmd.Stdout = &stdout
-		cmd.Stderr = &stderr
-	*/
-
-	err = cmd.Run()
-	if err != nil {
+	if err := cmd.Run(); err != nil {
 		return "", err
 	}
 
-	/*
-		fmt.Println("-stdout-")
-		fmt.Println(stdout.String())
-
-		fmt.Println("-stderr-")
-		fmt.Println(stderr.String())
-	*/
-
-	return dest, nil
+	return destPath, nil
 }
