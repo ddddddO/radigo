@@ -73,13 +73,6 @@ func handler(ctx *gin.Context) {
 		return
 	}
 
-	/*
-		if err := rg.Upload(ctx, destPath); err != nil {
-			ctx.String(500, err.Error()+"\n")
-			return
-		}
-	*/
-
 	ctx.String(200, destPath+"\n")
 
 	return

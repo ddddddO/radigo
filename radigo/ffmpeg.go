@@ -1,6 +1,7 @@
 package lib
 
 import (
+	//"bufio"
 	"fmt"
 	"os"
 	"os/exec"
@@ -9,6 +10,8 @@ import (
 )
 
 // TODO:.m4aファイルは専用ディレクトリに生成する
+// また、以下構成にして、生成したm4aをクライアント側でDLできるようにする。
+// html(disaster)からapi叩いてm4aを生成→htmlからm4aを選択できるようにし、クライアント側でDL
 func Ffmpeg(m3u8, stationId string) (string, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -60,14 +63,49 @@ func Upload(ctx *gin.Context, path string) error {
 		return err
 	}
 
-	fmt.Printf("CliantIP: %s\n", ctx.ClientIP())
-
 	// Content-type
 	// とは :https://wa3.i-3-i.info/word15787.html
 	// 種類 :https://developer.mozilla.org/ja/docs/Web/HTTP/Basics_of_HTTP/MIME_types#Important_MIME_types_for_Web_developers
 	// 種類 :https://www.tagindex.com/html5/basic/mimetype.html
-	ctx.Data(200, "audio/aac", buf)
+	//ctx.Data(200, "audio/aac", buf)
 	//ctx.Data(200, "text/plain", buf)
+
+
+		_, err = ctx.Writer.WriteString("echo kakikomi 0> aa")
+		_, err = ctx.Writer.WriteString("\n")
+		//_, err = ctx.Writer.Write(buf)
+		if err != nil {
+			return err
+		}
+		ctx.Writer.Flush()
+
+
+	conn, _, err := ctx.Writer.Hijack()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	addr := conn.LocalAddr()
+	fmt.Println(addr.Network())
+	fmt.Println(addr.String())
+
+		buf2 := []byte("Hijack!?\n")
+		conn.Write(buf2)
+		defer conn.Close()
+
+		_, err = rw.WriteString("echo qqqq\n")
+		if err != nil {
+			return err
+		}
+		rw.Flush()
+
+	bw := bufio.NewWriter(conn)
+	_, err = bw.WriteString("echo qqqq\n")
+	if err != nil {
+		return err
+	}
+	bw.Flush()
 
 	return nil
 }
