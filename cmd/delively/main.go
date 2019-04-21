@@ -20,6 +20,8 @@ func main() {
 
 }
 
+// NOTE: ブラウザからlocalhost:8888/m4a でDLすること成功し、再生もできた。
+//       ターミナル・コマンドプロンプトで curl -i localhost:8888/m4a --output downloaded.m4a だと、DLできても、ファイルが壊れているらしく再生できなかった。
 func returnM4AFunc(ctx *gin.Context) {
 	m4a := "./new.m4a"
 	f, err := os.Open(m4a)
@@ -33,8 +35,9 @@ func returnM4AFunc(ctx *gin.Context) {
 		log.Fatalln(err)
 	}
 
+	// 参考：https://qiita.com/yuji38kwmt/items/9edb4b17768d112ae43b
+	//     ：https://github.com/gin-gonic/gin
 	ctx.DataFromReader(200, fInf.Size(), "audio/mp4", f, map[string]string{"Content-Disposition": `attachment; filename="downloaded.m4a"`})
-	//ctx.DataFromReader(200, fInf.Size(), "application/octet-stream", f, map[string]string{"Content-Disposition": `attachment; filename="downlorded.m4a"`})
 	return
 }
 
