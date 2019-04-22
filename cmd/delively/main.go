@@ -1,23 +1,89 @@
 package main
 
 import (
-	//"bytes"
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/sync/errgroup"
 )
+
+var g errgroup.Group
 
 func main() {
 	fmt.Println("DELIVERY")
 	//copyM4AatLocal()
+	/*
+		r := gin.Default()
 
-	r := gin.Default()
-	r.GET("/m4a", returnM4AFunc)
-	r.Run(":8888")
+		r.LoadHTMLGlob("./templates/*")
+		r.GET("/index", renderHTMLFunc)
 
+		r.GET("/m4a", returnM4AFunc)
+
+		r.Run(":8888")
+	*/
+
+	// NOTE: https://github.com/gin-gonic/gin#run-multiple-service-using-gin
+	serverHTML := &http.Server{
+		Addr:         ":9999",
+		Handler:      routerHTML(),
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+	}
+
+	serverAPI := &http.Server{
+		Addr:         ":8888",
+		Handler:      routerAPI(),
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+	}
+
+	g.Go(func() error {
+		return serverHTML.ListenAndServe()
+	})
+
+	g.Go(func() error {
+		return serverAPI.ListenAndServe()
+	})
+
+	if err := g.Wait(); err != nil {
+		log.Fatalln(err)
+	}
+
+}
+
+func routerHTML() http.Handler {
+	e := gin.New()
+	e.Use(gin.Recovery())
+
+	e.LoadHTMLGlob("./templates/*")
+	e.GET("/index", renderHTMLFunc)
+
+	return e
+}
+
+func routerAPI() http.Handler {
+	e := gin.New()
+	e.Use(gin.Recovery())
+	e.GET("/m4a", returnM4AFunc)
+
+	return e
+}
+
+var dlPath = "pathpath"
+
+func renderHTMLFunc(ctx *gin.Context) {
+	ctx.HTML(200, "index.tmpl", gin.H{
+		"title": "速報とかラジオで",
+		// TODO: サーバー側のm4aのダウンロードパスをレンダリングする
+		// "dlPath": cmd/api/main.goのdestPath,
+		"dlPath": dlPath,
+	})
 }
 
 // NOTE: ブラウザからlocalhost:8888/m4a でDLすること成功し、再生もできた。
@@ -34,6 +100,8 @@ func returnM4AFunc(ctx *gin.Context) {
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	dlPath += m4a
 
 	// 参考：https://qiita.com/yuji38kwmt/items/9edb4b17768d112ae43b
 	//     ：https://github.com/gin-gonic/gin

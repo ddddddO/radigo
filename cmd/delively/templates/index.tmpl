@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+    <title>{{ .title }}</title>
+<head>
+    <meta charset="UTF-8">
+</head>
+
+<body>
+    <form action="http://localhost:8888/m4a" method="get">
+        <input type="submit" value="ダウンロード">
+    </form></br>
+    <video controls>
+        <!--ここにサーバ側でダウンロードしたm4aのパスを指定する-->
+
+        <!--１：h2o側でDLしたm4aファイルにアクセスする設定が必要そう？-->
+
+        <!--２：そもそもDLしたファイル名をブラウザ側で取得するには？以下でできそう?-->
+        <!--クライアント側でDLファイル名を生成してクエリパラメタで送信し、そのファイル名でサーバ側で保存-->
+        <!--生成したファイル名をsrcに指定-->
+
+        <source src="http://xxxx/server_m4a_store_path/">
+    </video>
+    {{ .dlPath }}
+</body>
+
+</html>
